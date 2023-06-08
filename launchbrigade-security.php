@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Launch Brigade Security
- * Plugin URI: https://example.com/launchbrigade-security
+ * Plugin URI: https://github.com/LaunchBrigade/launchbrigade-security
  * Description: Disables iThemes Security notifications and sends notifications to Launch Brigade only. See https://help.ithemes.com/hc/en-us/articles/360038144834-How-to-Modify-the-Notification-Email-Recipient-s-
  * Version: 0.1.0
  * Author: Launch Brigade
@@ -70,8 +70,8 @@ function launchbrigade_security_check_updates() {
 	$current_version = '0.1.0'; // Change to the current version of your plugin
 	$plugin_slug     = 'launchbrigade-security'; // Change to your plugin's slug
 
-	$github_username = 'your-username'; // Change to your GitHub username
-	$github_repo     = 'your-repo'; // Change to your GitHub repository name
+	$github_username = 'LaunchBrigade'; // Change to your GitHub username
+	$github_repo     = 'launchbrigade-security'; // Change to your GitHub repository name
 
 	$github_response = wp_remote_get( "https://api.github.com/repos/{$github_username}/{$github_repo}/releases/latest" );
 	$github_data     = json_decode( wp_remote_retrieve_body( $github_response ) );
