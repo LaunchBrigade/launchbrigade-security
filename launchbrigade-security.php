@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plugin Name: Launch Brigade Security
  * Plugin URI: https://github.com/LaunchBrigade/launchbrigade-security
@@ -11,12 +12,12 @@
 
 
 // Exit if accessed directly
-if ( ! defined( 'ABSPATH' ) ) {
+if (!defined('ABSPATH')) {
 	exit;
 }
 
 // Check if iThemes Security plugin is active
-if ( is_plugin_active( 'better-wp-security/better-wp-security.php' ) ) {
+if (is_plugin_active('better-wp-security/better-wp-security.php')) {
 	return;
 }
 
@@ -36,49 +37,52 @@ function launchbrigade_security_display_admin_notice()
 
 
 // Plugin initialization
-function launchbrigade_security_init() {
+function launchbrigade_security_init()
+{
 	// Send notifications to Launch Brigade only
 	// This will override any other notification settings
-	function ithemes_security_custom_notification_email( $emails ) {
+	function ithemes_security_custom_notification_email($emails)
+	{
 		return [
 			ITSEC_NOTIFICATION_EMAIL
 		];
 	}
 
-	add_filter( 'itsec_notification_email_recipients', 'ithemes_security_custom_notification_email' );
+	add_filter('itsec_notification_email_recipients', 'ithemes_security_custom_notification_email');
 
 
 	// Check for updates (only if the transient is not set or expired)
-	if ( false === ( $update_data = get_transient( 'launchbrigade_security_update' ) ) ) {
+	if (false === ($update_data = get_transient('launchbrigade_security_update'))) {
 		$update_data = launchbrigade_security_check_updates();
-		set_transient( 'launchbrigade_security_update', $update_data, 12 * HOUR_IN_SECONDS ); // Cache for 12 hours
+		set_transient('launchbrigade_security_update', $update_data, 12 * HOUR_IN_SECONDS); // Cache for 12 hours
 	}
 
 	// Process the update check result
 	$current_version = 'v0.2.2'; // Change to the current version of your plugin
-	if ( $update_data && version_compare( $current_version, $update_data->new_version, '<' ) ) {
+	if ($update_data && version_compare($current_version, $update_data->new_version, '<')) {
 
-		add_filter( 'pre_set_site_transient_update_plugins', function ( $transient ) use ( $update_data ) {
+		add_filter('pre_set_site_transient_update_plugins', function ($transient) use ($update_data) {
 			$transient->response['launchbrigade-security/launchbrigade-security.php'] = $update_data;
 
 			return $transient;
-		} );
+		});
 	}
 }
 
-add_action( 'plugins_loaded', 'launchbrigade_security_init' );
+add_action('plugins_loaded', 'launchbrigade_security_init');
 
 // Check for plugin updates
-function launchbrigade_security_check_updates() {
+function launchbrigade_security_check_updates()
+{
 	$plugin_slug     = 'launchbrigade-security'; // Change to your plugin's slug
 
 	$github_username = 'LaunchBrigade'; // Change to your GitHub username
 	$github_repo     = 'launchbrigade-security'; // Change to your GitHub repository name
 
-	$github_response = wp_remote_get( "https://api.github.com/repos/{$github_username}/{$github_repo}/releases/latest" );
-	$github_data     = json_decode( wp_remote_retrieve_body( $github_response ) );
+	$github_response = wp_remote_get("https://api.github.com/repos/{$github_username}/{$github_repo}/releases/latest");
+	$github_data     = json_decode(wp_remote_retrieve_body($github_response));
 
-	if ( $github_response['response']['code'] === 200 && ! empty( $github_data->tag_name ) ) {
+	if ($github_response['response']['code'] === 200 && !empty($github_data->tag_name)) {
 		$zip_file_name = 'launchbrigade-security.zip';
 
 		// Append the zip file name to the download URL
@@ -95,25 +99,25 @@ function launchbrigade_security_check_updates() {
 	return false;
 }
 
-// Move the unzipped plugin files to the current plugin directory after installation
-function launchbrigade_security_move_plugin_files($response, $hook_extra, $result)
-{
-	global $wp_filesystem;
+add_filter( 'upgrader_package_options', function( $options ) {
 
-	// Extract the current plugin directory path
-	$plugin_dir = plugin_dir_path(__FILE__);
+	$destination = $options['destination'] ?? '';
+	$package     = $options['package'] ?? '';
+	$dirname     = isset( $options['hook_extra']['plugin'] )
+		? dirname( $options['hook_extra']['plugin'] )
+		: '';
 
-	// Get the unzipped plugin directory path
-	$new_plugin_dir = $plugin_dir . 'launchbrigade-security/';
+	if ( empty( $dirname ) || '.' === $dirname ) {
+		return $options;
+	}
 
-	// Move the plugin files from the unzipped directory to the current plugin directory
-	$wp_filesystem->move($result['destination'], $new_plugin_dir);
+	if ( 'github.com' !== parse_url( $package, PHP_URL_HOST) ) {
+		return $options;
+	}
 
-	// Update the plugin file path and plugin data
-	$response['plugin'] = $new_plugin_dir . 'launchbrigade-security.php';
-	$response['new_plugin'] = $new_plugin_dir . 'launchbrigade-security.php';
-	$response['plugin_data'] = get_plugin_data($new_plugin_dir . 'launchbrigade-security.php');
+	if ( WP_PLUGIN_DIR === $destination ) {
+		$options['destination'] = path_join( $destination, $dirname );
+	}
 
-	return $response;
-}
-add_filter('upgrader_post_install', 'launchbrigade_security_move_plugin_files', 10, 3);
+	return $options;
+});
