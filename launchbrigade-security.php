@@ -58,8 +58,11 @@ function launchbrigade_security_init()
 	}
 
 	// Process the update check result
-	$current_version = 'v0.2.6'; // Change to the current version of your plugin
-	if ($update_data && version_compare($current_version, $update_data->new_version, '<')) {
+	$plugin_data = get_file_data(__FILE__, array('Version' => 'Version'), false);
+	$plugin_version = $plugin_data['Version']; // Get the plugin version from the plugin header
+
+	// Add a v to the beginning of our version and check if it's less than the update version on github.
+	if ($update_data && version_compare("v$plugin_version", $update_data->new_version, '<')) {
 
 		add_filter('pre_set_site_transient_update_plugins', function ($transient) use ($update_data) {
 			$transient->response['launchbrigade-security/launchbrigade-security.php'] = $update_data;
@@ -99,6 +102,8 @@ function launchbrigade_security_check_updates()
 	return false;
 }
 
+// Force the plugin to install in the correct directory when updating from GitHub.
+// Without this, the plugin will install to a path with the GitHub username and version number.
 add_filter( 'upgrader_package_options', function( $options ) {
 
 	$destination = $options['destination'] ?? '';
