@@ -3,7 +3,7 @@
  * Plugin Name: Launch Brigade Security
  * Plugin URI: https://github.com/LaunchBrigade/launchbrigade-security
  * Description: Disables iThemes Security notifications and sends notifications to Launch Brigade only. See https://help.ithemes.com/hc/en-us/articles/360038144834-How-to-Modify-the-Notification-Email-Recipient-s-
- * Version: 0.2.0
+ * Version: 0.2.2
  * Author: Launch Brigade
  * Author URI: https://launchbrigade.com/
  * License: GPL2
@@ -55,7 +55,7 @@ function launchbrigade_security_init() {
 	}
 
 	// Process the update check result
-	$current_version = 'v0.2.0'; // Change to the current version of your plugin
+	$current_version = 'v0.2.2'; // Change to the current version of your plugin
 	if ( $update_data && version_compare( $current_version, $update_data->new_version, '<' ) ) {
 
 		add_filter( 'pre_set_site_transient_update_plugins', function ( $transient ) use ( $update_data ) {
@@ -81,9 +81,8 @@ function launchbrigade_security_check_updates() {
 	if ( $github_response['response']['code'] === 200 && ! empty( $github_data->tag_name ) ) {
 		$zip_file_name = 'launchbrigade-security.zip';
 
-        // Append the zip file name to the download URL
-        $download_url = add_query_arg(array('filename' => $zip_file_name), $download_url);
-
+		// Append the zip file name to the download URL
+		$download_url = add_query_arg(array('filename' => $zip_file_name), $github_data->zipball_url);
 
 		return (object) [
 			'slug'        => $plugin_slug,
@@ -95,3 +94,26 @@ function launchbrigade_security_check_updates() {
 
 	return false;
 }
+
+// Move the unzipped plugin files to the current plugin directory after installation
+function launchbrigade_security_move_plugin_files($response, $hook_extra, $result)
+{
+	global $wp_filesystem;
+
+	// Extract the current plugin directory path
+	$plugin_dir = plugin_dir_path(__FILE__);
+
+	// Get the unzipped plugin directory path
+	$new_plugin_dir = $plugin_dir . 'launchbrigade-security/';
+
+	// Move the plugin files from the unzipped directory to the current plugin directory
+	$wp_filesystem->move($result['destination'], $new_plugin_dir);
+
+	// Update the plugin file path and plugin data
+	$response['plugin'] = $new_plugin_dir . 'launchbrigade-security.php';
+	$response['new_plugin'] = $new_plugin_dir . 'launchbrigade-security.php';
+	$response['plugin_data'] = get_plugin_data($new_plugin_dir . 'launchbrigade-security.php');
+
+	return $response;
+}
+add_filter('upgrader_post_install', 'launchbrigade_security_move_plugin_files', 10, 3);
